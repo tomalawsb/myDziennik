@@ -3,6 +3,8 @@ name: Build myDziennik APK 1.1
 on:
   push:
     branches: ["apk-build-1-1-temp"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
