@@ -1,48 +1,48 @@
-# Dzienniczek Szpontniczek
+# myDziennik
 
-[![Skala szpontu](https://img.shields.io/badge/szpont_kwantowy-w_skali_szpontu-blue)](https://github.com/szponciciel04/DzienniczekSzpontniczek)
-[![Repo size](https://img.shields.io/github/repo-size/szponciciel04/DzienniczekSzpontniczek)](https://github.com/szponciciel04/DzienniczekSzpontniczek)
-[![Last commit](https://img.shields.io/github/last-commit/szponciciel04/DzienniczekSzpontniczek)](https://github.com/szponciciel04/DzienniczekSzpontniczek/commits)
-[![Issues](https://img.shields.io/github/issues/szponciciel04/DzienniczekSzpontniczek)](https://github.com/szponciciel04/DzienniczekSzpontniczek/issues)
-[![Top language](https://img.shields.io/github/languages/top/szponciciel04/DzienniczekSzpontniczek)](https://github.com/szponciciel04/DzienniczekSzpontniczek)
+Nieoficjalna aplikacja na Androida do obsługi eduVULCAN i Dziennika VULCAN.
 
-Dzienniczek Szpontniczek (codename: Szpontium) to pierwszy w pełni naszponcony client eduVULCAN
+Repozytorium: https://github.com/tomalawsb/myDziennik
 
-Projekt został całkowicie przyszponcony w paru promptach przy użyciu Szpont Maszyny z modelem Claude Sonnet 4.6
+## Budowanie APK w Windows
 
-![Szpont](./artwork/szpont-detected.jpg)
+Uruchom plik:
 
-## Funkcje aplikacji
+```text
+ZBUDUJ_APK.bat
+```
 
-Dzienniczek Szpontniczek pozwala korzystać z najważniejszych funkcji e-dziennika VULCAN i eduVULCAN w jednej aplikacji.
+Skrypt automatycznie:
 
-- logowanie i rejestracja urządzenia dla Dzienniczka VULCAN oraz eduVULCAN,
-- podgląd ocen, średnich i podsumowań okresowych,
-- przegląd sprawdzianów, kartkówek i zadań domowych,
-- plan lekcji (w tym zastępstwa) oraz lekcje zaplanowane i zrealizowane,
-- frekwencja wraz ze statystykami miesięcznymi i przedmiotowymi,
-- uwagi, ogłoszenia i wiadomości,
-- informacje o nauczycielach, szkole, wycieczkach, wydarzeniach i dniach wolnych.
+- sprawdza lub instaluje JDK 17,
+- pobiera Android SDK Command-line Tools, jeśli SDK nie jest dostępne,
+- instaluje wymagane składniki Android SDK,
+- tworzy stały klucz podpisu aplikacji przy pierwszym uruchomieniu,
+- buduje podpisane APK w katalogu `dist`.
 
-## Skala Szpontu
+## Wysyłka na GitHub
 
-<img src="./artwork/szpont-scale.png" alt="Szpont" width="400">
+Uruchom:
 
-Cały projekt uplasował się na miejscu "Szpont Kwantowy" w Skali Szpontu
+```text
+WYSLIJ_NA_GITHUB.bat
+```
 
-## Dokumentacja
+Skrypt buduje APK, synchronizuje kod z repozytorium i publikuje APK w GitHub Releases.
+Adres repozytorium jest zapisany na stałe jako `https://github.com/tomalawsb/myDziennik.git`.
 
-Więcej szczegółów znajdziesz w dokumentacji projektu:
+## Ważne
 
-- [Getting started](docs/getting-started.md)
-- [Basic usage](docs/basic-usage.md)
-- [Logowanie i klient HebeCE](docs/login-and-hebece-client.md)
-- [Flow logowania eduVULCAN](docs/eduvulcan-login-flow.md)
-- [Prometheus login helper](docs/prometheus-login-helper.md)
+Katalog `.signing` zawiera klucz podpisu. Nie jest wysyłany na GitHub. Trzeba zachować jego kopię, ponieważ wszystkie przyszłe aktualizacje APK muszą być podpisane tym samym kluczem.
 
-UWAGA! ta dokumentacja jest całkowcie przyszponcona przez Szpont Maszynę.
+## Wersja
 
-## Podziękowania
+- wersja aplikacji: `1.0 - 1606261701`
+- tag wydania: `v1.0-1606261701`
+- plik APK: `myDziennik-v1.0-1606261701.apk`
 
-Serdeczne podziękowania dla Szpont Maszyny która pozwoliła naszponcić cały ten projekt 
+## Pochodzenie projektu
 
+Projekt powstał na bazie otwartoźródłowego projektu `DzienniczekSzpontniczek` autorstwa `szponciciel04`, udostępnionego na licencji MIT. Oryginalna licencja została zachowana w pliku `LICENSE`.
+
+Aplikacja jest projektem nieoficjalnym i nie jest produktem firmy VULCAN.
