@@ -1,0 +1,81 @@
+name: Build myDziennik APK 1.1
+
+on:
+  push:
+    branches: ["apk-build-1-1-temp"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz pliki pomocnicze
+        uses: actions/checkout@v4
+
+      - name: Ustaw JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Ustaw Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Zainstaluj Android SDK 36
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Przygotuj kod aplikacji
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v0.1.2 https://github.com/szponciciel04/DzienniczekSzpontniczek.git app-src
+          unzip -o myDziennik-1.1-patch.zip -d app-src
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app-src/composeApp/build.gradle.kts')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('applicationId = "io.github.szpontium"', 'applicationId = "pl.tomalawsb.mydziennik"')
+          s = s.replace('versionCode = 2', 'versionCode = 10003')
+          s = s.replace('versionName = "0.1.2"', 'versionName = "1.1 - 1606262113"')
+          p.write_text(s, encoding='utf-8')
+          strings = Path('app-src/composeApp/src/androidMain/res/values/strings.xml')
+          if strings.exists():
+              t = strings.read_text(encoding='utf-8')
+              t = t.replace('Dzienniczek Szpontniczek', 'myDziennik')
+              strings.write_text(t, encoding='utf-8')
+          PY
+          printf 'sdk.dir=%s\n' "$ANDROID_HOME" > app-src/local.properties
+          chmod +x app-src/gradlew
+
+      - name: Zbuduj APK release
+        working-directory: app-src
+        run: ./gradlew --no-daemon :composeApp:assembleRelease --stacktrace
+
+      - name: Przygotuj artefakt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifact/lib
+          APK=$(find app-src/composeApp/build/outputs/apk/release -type f -name '*.apk' | head -n 1)
+          test -n "$APK"
+          cp "$APK" artifact/myDziennik-v1.1-1606262113-unsigned.apk
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          cp "$BT/zipalign" artifact/zipalign
+          cp "$BT/apksigner" artifact/apksigner
+          cp "$BT/lib/apksigner.jar" artifact/lib/apksigner.jar
+          chmod +x artifact/zipalign artifact/apksigner
+
+      - name: Zapisz wynik
+        uses: actions/upload-artifact@v4
+        with:
+          name: myDziennik-v1.1-1606262113-unsigned
+          path: artifact
+          if-no-files-found: error
