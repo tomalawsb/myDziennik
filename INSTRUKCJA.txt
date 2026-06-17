@@ -1,0 +1,12 @@
+myDziennik 1.5 - 1706261953
+
+PROD:
+1. Uzupełnij composeApp\src\prod\google-services.json.
+2. Uruchom: gradlew.bat :composeApp:assembleProdRelease
+
+DEV:
+1. Uzupełnij composeApp\src\dev\google-services.json dla pakietu pl.tomalawsb.mydziennik.dev.
+2. Uruchom ZBUDUJ_APK_DEV.bat lub: gradlew.bat :composeApp:assembleDevDebug
+3. DEV można zainstalować obok PROD.
+
+Przed wysłaniem zmian nie dodawaj APK, ZIP, magazynów podpisu ani plików tymczasowych.

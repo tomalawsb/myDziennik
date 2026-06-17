@@ -2,47 +2,31 @@
 
 Nieoficjalna aplikacja na Androida do obsługi eduVULCAN i Dziennika VULCAN.
 
-Repozytorium: https://github.com/tomalawsb/myDziennik
-
-## Budowanie APK w Windows
-
-Uruchom plik:
-
-```text
-ZBUDUJ_APK.bat
-```
-
-Skrypt automatycznie:
-
-- sprawdza lub instaluje JDK 17,
-- pobiera Android SDK Command-line Tools, jeśli SDK nie jest dostępne,
-- instaluje wymagane składniki Android SDK,
-- tworzy stały klucz podpisu aplikacji przy pierwszym uruchomieniu,
-- buduje podpisane APK w katalogu `dist`.
-
-## Wysyłka na GitHub
-
-Uruchom:
-
-```text
-WYSLIJ_NA_GITHUB.bat
-```
-
-Skrypt buduje APK, synchronizuje kod z repozytorium i publikuje APK w GitHub Releases.
-Adres repozytorium jest zapisany na stałe jako `https://github.com/tomalawsb/myDziennik.git`.
-
-## Ważne
-
-Katalog `.signing` zawiera klucz podpisu. Nie jest wysyłany na GitHub. Trzeba zachować jego kopię, ponieważ wszystkie przyszłe aktualizacje APK muszą być podpisane tym samym kluczem.
-
 ## Wersja
 
-- wersja aplikacji: `1.0 - 1606261701`
-- tag wydania: `v1.0-1606261701`
-- plik APK: `myDziennik-v1.0-1606261701.apk`
+- wersja bazowa: `1.5 - 1706261953`
+- versionCode: `10007`
+- gałąź Firebase: `firebase-dev`
 
-## Pochodzenie projektu
+## Warianty
 
-Projekt powstał na bazie otwartoźródłowego projektu `DzienniczekSzpontniczek` autorstwa `szponciciel04`, udostępnionego na licencji MIT. Oryginalna licencja została zachowana w pliku `LICENSE`.
+- PROD: `pl.tomalawsb.mydziennik`, nazwa `myDziennik`
+- DEV: `pl.tomalawsb.mydziennik.dev`, nazwa `myDziennik DEV`
 
-Aplikacja jest projektem nieoficjalnym i nie jest produktem firmy VULCAN.
+Warianty mają osobne pliki `google-services.json`, nazwy i ikony, dlatego mogą działać równocześnie na jednym telefonie.
+
+## Firebase
+
+- PROD: `composeApp/src/prod/google-services.json`
+- DEV: `composeApp/src/dev/google-services.json`
+
+W repozytorium znajdują się szablony. Przed testami należy zastąpić je plikami pobranymi z odpowiednich projektów Firebase.
+
+## Budowanie
+
+- PROD: `gradlew.bat :composeApp:assembleProdRelease`
+- DEV: `gradlew.bat :composeApp:assembleDevDebug`
+
+Artefakty, pliki podpisu i pliki tymczasowe nie są przechowywane w repozytorium.
+
+Projekt powstał na bazie `DzienniczekSzpontniczek` i zachowuje licencję MIT.
