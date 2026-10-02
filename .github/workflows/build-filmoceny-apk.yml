@@ -31,7 +31,7 @@ jobs:
           SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-37" "build-tools;36.0.0" "platform-tools"
+          "$SDKMANAGER" --channel=3 --install "platforms;android-37.0" "build-tools;37.0.0" "platform-tools"
 
       - name: Gradle 9.6
         uses: gradle/actions/setup-gradle@v4
@@ -60,7 +60,15 @@ jobs:
           app = root / "app" / "build.gradle.kts"
           s = app.read_text(encoding="utf-8")
           s = s.replace('    id("org.jetbrains.kotlin.android")\n', '')
-          s = s.replace('compileSdk = 36', 'compileSdk = 37')
+          s = s.replace(
+              '    compileSdk = 36\n',
+              '''    compileSdk {
+                  version = release(37) {
+                      minorApiLevel = 0
+                  }
+              }
+          '''
+          )
           s = s.replace('''    kotlinOptions {
                   jvmTarget = "17"
               }
@@ -88,7 +96,7 @@ jobs:
           set -euxo pipefail
           APK=/tmp/filmoceny-src/FilmOceny/app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose "$APK"
           mkdir -p artifact
           cp "$APK" artifact/FilmOceny-1.0.0.apk
           sha256sum artifact/FilmOceny-1.0.0.apk | tee artifact/SHA256.txt
