@@ -1,4 +1,4 @@
-name: Probe FilmOceny portals
+name: Build FilmOceny 1.1 APK
 
 on:
   push:
@@ -9,51 +9,64 @@ permissions:
   contents: read
 
 jobs:
-  probe:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Probe Filmweb web API and public pages
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Prepare Android SDK
+        shell: bash
         run: |
-          python3 - <<'PY'
-          import json, urllib.parse, urllib.request, re
-          ua='Mozilla/5.0 (Linux; Android 16; Pixel 9) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36'
-          def get(url, json_mode=False):
-            req=urllib.request.Request(url,headers={'User-Agent':ua,'Accept-Language':'pl-PL,pl;q=0.9,en;q=0.8','x-locale':'pl','Accept':'application/json,text/html;q=0.9,*/*;q=0.8'})
-            with urllib.request.urlopen(req,timeout=25) as r:
-              b=r.read()
-              return r.status,r.url,b.decode('utf-8','ignore')
-          tests=[
-            'https://www.filmweb.pl/api/v1/live/search?query=matrix',
-            'https://www.filmweb.pl/api/v1/title/628/info',
-            'https://www.filmweb.pl/api/v1/film/628/preview',
-            'https://www.filmweb.pl/api/v1/film/628/rating',
-            'https://www.filmweb.pl/api/v1/film/628/critics/rating',
-          ]
-          for url in tests:
-            print('\n###',url)
-            try:
-              code,final,txt=get(url)
-              print('STATUS',code,'LEN',len(txt))
-              try:
-                obj=json.loads(txt)
-                print(json.dumps(obj,ensure_ascii=False)[:10000])
-              except Exception:
-                print(txt[:3000])
-            except Exception as e: print('ERR',repr(e))
-          # Inspect search HTML around "Matrix" for Filmweb/Letterboxd
-          for name,url in [
-            ('filmweb','https://www.filmweb.pl/search?q=matrix'),
-            ('letterboxd','https://letterboxd.com/search/matrix/'),
-            ('metacritic','https://www.metacritic.com/search/matrix/'),
-          ]:
-            print('\n### HTML',name)
-            try:
-              _,_,html=get(url)
-              for needle in ['Matrix','matrix','The Matrix']:
-                p=html.find(needle)
-                if p>=0:
-                  print('SNIP',needle,html[max(0,p-1200):p+3500].replace('\n',' ')[:4700])
-                  break
-            except Exception as e: print('ERR',repr(e))
-          PY
+          set -euxo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --channel=3 --install "platforms;android-37.0" "build-tools;37.0.0" "platform-tools"
+
+      - name: Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Restore FilmOceny 1.1 sources
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat .filmoceny-build-v110/chunk00               .filmoceny-build-v110/chunk01               .filmoceny-build-v110/chunk02               .filmoceny-build-v110/chunk03               .filmoceny-build-v110/chunk04               .filmoceny-build-v110/chunk05               | base64 --decode > /tmp/FilmOceny-1.1.0.zip
+          unzip -t /tmp/FilmOceny-1.1.0.zip
+          rm -rf /tmp/filmoceny-src
+          mkdir -p /tmp/filmoceny-src
+          unzip -q /tmp/FilmOceny-1.1.0.zip -d /tmp/filmoceny-src
+          printf 'sdk.dir=%s\n' "$ANDROID_HOME" > /tmp/filmoceny-src/FilmOceny/local.properties
+
+      - name: Build debug APK
+        working-directory: /tmp/filmoceny-src/FilmOceny
+        run: gradle --no-daemon :app:assembleDebug --stacktrace
+
+      - name: Verify and collect APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          APK=/tmp/filmoceny-src/FilmOceny/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose "$APK"
+          mkdir -p artifact
+          cp "$APK" artifact/FilmOceny-1.1.0.apk
+          sha256sum artifact/FilmOceny-1.1.0.apk | tee artifact/SHA256.txt
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FilmOceny-1.1.0-APK
+          path: artifact
+          if-no-files-found: error
