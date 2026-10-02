@@ -38,7 +38,8 @@ jobs:
         with:
           gradle-version: "9.6.0"
 
-      - name: Restore FilmOceny sources
+      - name: Restore and migrate FilmOceny sources
+        shell: bash
         run: |
           set -euxo pipefail
           cat .filmoceny-build/chunk00 .filmoceny-build/chunk01 .filmoceny-build/chunk02 .filmoceny-build/chunk03 .filmoceny-build/chunk04 | base64 --decode > /tmp/FilmOceny.zip
@@ -46,7 +47,39 @@ jobs:
           rm -rf /tmp/filmoceny-src
           mkdir -p /tmp/filmoceny-src
           unzip -q /tmp/FilmOceny.zip -d /tmp/filmoceny-src
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("/tmp/filmoceny-src/FilmOceny")
+
+          top = root / "build.gradle.kts"
+          s = top.read_text(encoding="utf-8")
+          s = s.replace('    id("org.jetbrains.kotlin.android") version "2.4.20" apply false\n', '')
+          top.write_text(s, encoding="utf-8")
+
+          app = root / "app" / "build.gradle.kts"
+          s = app.read_text(encoding="utf-8")
+          s = s.replace('    id("org.jetbrains.kotlin.android")\n', '')
+          s = s.replace('''    kotlinOptions {
+                  jvmTarget = "17"
+              }
+
+          ''', '')
+          app.write_text(s, encoding="utf-8")
+
+          props = root / "gradle.properties"
+          lines = [
+              line for line in props.read_text(encoding="utf-8").splitlines()
+              if not line.startswith("android.builtInKotlin=")
+              and not line.startswith("android.newDsl=")
+          ]
+          props.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
           printf 'sdk.dir=%s\n' "$ANDROID_HOME" > /tmp/filmoceny-src/FilmOceny/local.properties
+          echo "--- app/build.gradle.kts ---"
+          cat /tmp/filmoceny-src/FilmOceny/app/build.gradle.kts
+          echo "--- gradle.properties ---"
+          cat /tmp/filmoceny-src/FilmOceny/gradle.properties
 
       - name: Build debug APK
         working-directory: /tmp/filmoceny-src/FilmOceny
