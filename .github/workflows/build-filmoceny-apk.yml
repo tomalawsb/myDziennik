@@ -38,7 +38,7 @@ jobs:
         with:
           gradle-version: "9.6.0"
 
-      - name: Restore FilmOceny 1.1 sources
+      - name: Restore and patch FilmOceny 1.1 sources
         shell: bash
         run: |
           set -euxo pipefail
@@ -47,6 +47,7 @@ jobs:
           rm -rf /tmp/filmoceny-src
           mkdir -p /tmp/filmoceny-src
           unzip -q /tmp/FilmOceny-1.1.0.zip -d /tmp/filmoceny-src
+          sed -i '/import androidx.compose.foundation.layout.weight/d'             /tmp/filmoceny-src/FilmOceny/app/src/main/java/pl/tomasz/filmoceny/MainActivity.kt
           printf 'sdk.dir=%s\n' "$ANDROID_HOME" > /tmp/filmoceny-src/FilmOceny/local.properties
 
       - name: Build debug APK
