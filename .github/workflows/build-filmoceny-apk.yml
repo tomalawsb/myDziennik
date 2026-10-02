@@ -1,4 +1,4 @@
-name: Build FilmOceny APK
+name: Probe FilmOceny portals
 
 on:
   push:
@@ -9,101 +9,44 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Prepare Android SDK
-        shell: bash
+      - uses: actions/checkout@v4
+      - name: Probe public HTML
         run: |
-          set -euxo pipefail
-          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          test -x "$SDKMANAGER"
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" --channel=3 --install "platforms;android-37.0" "build-tools;37.0.0" "platform-tools"
-
-      - name: Gradle 9.6
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "9.6.0"
-
-      - name: Restore and migrate FilmOceny sources
-        shell: bash
-        run: |
-          set -euxo pipefail
-          cat .filmoceny-build/chunk00 .filmoceny-build/chunk01 .filmoceny-build/chunk02 .filmoceny-build/chunk03 .filmoceny-build/chunk04 | base64 --decode > /tmp/FilmOceny.zip
-          unzip -t /tmp/FilmOceny.zip
-          rm -rf /tmp/filmoceny-src
-          mkdir -p /tmp/filmoceny-src
-          unzip -q /tmp/FilmOceny.zip -d /tmp/filmoceny-src
           python3 - <<'PY'
-          from pathlib import Path
-
-          root = Path("/tmp/filmoceny-src/FilmOceny")
-
-          top = root / "build.gradle.kts"
-          s = top.read_text(encoding="utf-8")
-          s = s.replace('    id("org.jetbrains.kotlin.android") version "2.4.20" apply false\n', '')
-          top.write_text(s, encoding="utf-8")
-
-          app = root / "app" / "build.gradle.kts"
-          s = app.read_text(encoding="utf-8")
-          s = s.replace('    id("org.jetbrains.kotlin.android")\n', '')
-          s = s.replace(
-              '    compileSdk = 36\n',
-              '''    compileSdk {
-                  version = release(37) {
-                      minorApiLevel = 0
-                  }
+          import re, urllib.parse, urllib.request
+          ua='Mozilla/5.0 (Linux; Android 16; Pixel 9) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36'
+          urls={
+            'filmweb':'https://www.filmweb.pl/search?q='+urllib.parse.quote('matrix'),
+            'imdb':'https://www.imdb.com/find/?q='+urllib.parse.quote('matrix')+'&s=tt',
+            'rt':'https://www.rottentomatoes.com/search?search='+urllib.parse.quote('matrix'),
+            'letterboxd':'https://letterboxd.com/search/'+urllib.parse.quote('matrix')+'/',
+            'metacritic':'https://www.metacritic.com/search/matrix/'
+          }
+          for name,url in urls.items():
+            print('\n###',name,url)
+            try:
+              req=urllib.request.Request(url,headers={'User-Agent':ua,'Accept-Language':'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7','Accept':'text/html,application/xhtml+xml'})
+              with urllib.request.urlopen(req,timeout=25) as r:
+                html=r.read().decode('utf-8','ignore')
+              print('LEN',len(html),'FINAL',r.url)
+              patterns={
+                'filmweb':r'href="([^"]*(?:/film/|/serial/)[^"]+)"',
+                'imdb':r'href="([^"]*/title/tt\d+/[^"]*)"',
+                'rt':r'href="([^"]*/m/[^"]+)"',
+                'letterboxd':r'href="([^"]*/film/[^"]+)"',
+                'metacritic':r'href="([^"]*/movie/[^"]+)"',
               }
-          '''
-          )
-          s = s.replace('''    kotlinOptions {
-                  jvmTarget = "17"
-              }
-
-          ''', '')
-          app.write_text(s, encoding="utf-8")
-
-          props = root / "gradle.properties"
-          lines = [
-              line for line in props.read_text(encoding="utf-8").splitlines()
-              if not line.startswith("android.builtInKotlin=")
-              and not line.startswith("android.newDsl=")
-          ]
-          props.write_text("\n".join(lines) + "\n", encoding="utf-8")
+              found=[]
+              for m in re.finditer(patterns[name],html,re.I):
+                h=m.group(1)
+                if h not in found: found.append(h)
+                if len(found)>=12: break
+              print('LINKS',found)
+              for marker in ['application/ld+json','__NEXT_DATA__','score','rating','search']:
+                print(marker, html.lower().find(marker.lower()))
+            except Exception as e:
+              print('ERR',repr(e))
           PY
-          printf 'sdk.dir=%s\n' "$ANDROID_HOME" > /tmp/filmoceny-src/FilmOceny/local.properties
-
-      - name: Build debug APK
-        working-directory: /tmp/filmoceny-src/FilmOceny
-        run: gradle --no-daemon :app:assembleDebug --stacktrace
-
-      - name: Verify and collect APK
-        shell: bash
-        run: |
-          set -euxo pipefail
-          APK=/tmp/filmoceny-src/FilmOceny/app/build/outputs/apk/debug/app-debug.apk
-          test -f "$APK"
-          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose "$APK"
-          mkdir -p artifact
-          cp "$APK" artifact/FilmOceny-1.0.0.apk
-          sha256sum artifact/FilmOceny-1.0.0.apk | tee artifact/SHA256.txt
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: FilmOceny-1.0.0-APK
-          path: artifact
-          if-no-files-found: error
