@@ -31,7 +31,7 @@ jobs:
           SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          "$SDKMANAGER" "platforms;android-37" "build-tools;36.0.0" "platform-tools"
 
       - name: Gradle 9.6
         uses: gradle/actions/setup-gradle@v4
@@ -60,6 +60,7 @@ jobs:
           app = root / "app" / "build.gradle.kts"
           s = app.read_text(encoding="utf-8")
           s = s.replace('    id("org.jetbrains.kotlin.android")\n', '')
+          s = s.replace('compileSdk = 36', 'compileSdk = 37')
           s = s.replace('''    kotlinOptions {
                   jvmTarget = "17"
               }
@@ -76,10 +77,6 @@ jobs:
           props.write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
           printf 'sdk.dir=%s\n' "$ANDROID_HOME" > /tmp/filmoceny-src/FilmOceny/local.properties
-          echo "--- app/build.gradle.kts ---"
-          cat /tmp/filmoceny-src/FilmOceny/app/build.gradle.kts
-          echo "--- gradle.properties ---"
-          cat /tmp/filmoceny-src/FilmOceny/gradle.properties
 
       - name: Build debug APK
         working-directory: /tmp/filmoceny-src/FilmOceny
